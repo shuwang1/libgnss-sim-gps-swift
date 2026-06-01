@@ -13,7 +13,7 @@ A high-performance Swift implementation of a GNSS L1 C/A baseband signal generat
 
 ## Installation
 
-Ensure you have Swift 6.0 or later installed on your Linux or macOS system.
+Ensure you have Swift 6.0 or later installed on your macOS (10.15.4+) or Linux system.
 
 ```bash
 git clone <repository-url>

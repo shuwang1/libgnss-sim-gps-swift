@@ -4,7 +4,7 @@ This guide provides instructions on how to install, build, run, and test the `gn
 
 ## Prerequisites
 
-- **Operating System**: Linux (Ubuntu 22.04+ recommended) or macOS.
+- **Operating System**: macOS 10.15.4 or newer (Recommended). Linux is also supported but macOS is the primary target for CI.
 - **Swift Toolchain**: Swift 6.0 or later.
   - On Linux, you can install it via [swiftly](https://github.com/swiftly-step/swiftly) or from [Swift.org](https://swift.org/download/).
   - On macOS, install Xcode 16.0 or later.

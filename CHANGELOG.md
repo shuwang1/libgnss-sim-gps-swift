@@ -32,6 +32,11 @@ All notable changes to this project will be documented in this file.
 - **Documentation**: Transitioned all internal documentation to Swift-native DocC format for automated catalog generation.
 
 ### Fixed
+- **Integration Readiness**: Resolved several critical bugs identified during successful integration testing with the Erlang GNSS receiver:
+  - **Signal Scaling**: Corrected 8-bit signal scaling (divide by 16) to match reference C implementation and prevent clipping.
+  - **Doppler Handling**: Fixed a trap when casting negative Doppler values to `UInt32` by using bit-pattern initialization.
+  - **Static Trajectories**: Improved `Simulator` logic to handle single-point trajectory files correctly over a specified duration.
+  - **Parsing Robustness**: Implemented whitespace trimming for CSV trajectory fields.
 - **Documentation System**: Fixed errors in documentation generation by adding `swift-docc-plugin`, creating a DocC catalog landing page, and completing missing API parameter documentation.
 - **Trajectory Parsing**: Fixed a bug where leading/trailing whitespace in CSV files caused parsing failures; implemented automatic field trimming.
 - **Linux Compatibility**: Implemented a custom `Vector3` structure to eliminate dependency on the Apple-only `simd` framework, ensuring full portability.

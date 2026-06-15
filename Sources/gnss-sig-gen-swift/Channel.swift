@@ -48,7 +48,7 @@ struct Channel {
         let E = azel.el / Constants.PI
         let phi_u = llh[0] / Constants.PI
         let lam_u = llh[1] / Constants.PI
-        let F = 1.0 + 16.0 * pow(0.53 - E, 3)
+        let F = 1.0 + 16.0 * (0.53 - E) * (0.53 - E) * (0.53 - E)
         
         if !ionoutc.vflg { return F * 5.0e-9 * Constants.SPEED_OF_LIGHT }
         
@@ -59,10 +59,10 @@ struct Channel {
         let lam_i = lam_u + psi * sin(azel.az) / cos(phi_i * Constants.PI)
         let phi_m = phi_i + 0.064 * cos((lam_i - 1.617) * Constants.PI)
         
-        var AMP = ionoutc.alpha0 + ionoutc.alpha1 * phi_m + ionoutc.alpha2 * pow(phi_m, 2) + ionoutc.alpha3 * pow(phi_m, 3)
+        var AMP = ionoutc.alpha0 + ionoutc.alpha1 * phi_m + ionoutc.alpha2 * phi_m * phi_m + ionoutc.alpha3 * phi_m * phi_m * phi_m
         if AMP < 0.0 { AMP = 0.0 }
         
-        var PER = ionoutc.beta0 + ionoutc.beta1 * phi_m + ionoutc.beta2 * pow(phi_m, 2) + ionoutc.beta3 * pow(phi_m, 3)
+        var PER = ionoutc.beta0 + ionoutc.beta1 * phi_m + ionoutc.beta2 * phi_m * phi_m + ionoutc.beta3 * phi_m * phi_m * phi_m
         if PER < 72000.0 { PER = 72000.0 }
         
         var t = Constants.SECONDS_IN_DAY / 2.0 * lam_i + g.sec

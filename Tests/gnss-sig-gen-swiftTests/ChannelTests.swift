@@ -32,7 +32,9 @@ struct ChannelTests {
         let satVel = Vector3(0, 3000.0, 0)
         let clk = (bias: 0.0, drift: 0.0)
         
-        let rho = Channel.estimateRange(ionoutc: ionoutc, g: g, xyz: xyz, satPos: satPos, satVel: satVel, clk: clk)
+        let llh = MathUtils.xyz2llh(xyz)
+        let tmat = MathUtils.ltcmat(llh)
+        let rho = Channel.estimateRange(ionoutc: ionoutc, g: g, xyz: xyz, satPos: satPos, satVel: satVel, clk: clk, llh: llh, tmat: tmat)
         
         #expect(abs(rho.d - 20000000.0) < 100.0) 
         #expect(abs(rho.azel.el - 90.0 * Constants.D2R) < 1.0 * Constants.D2R)

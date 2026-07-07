@@ -1,7 +1,6 @@
 # gps-sig-gen-swift: Modular GNSS Signal Generator
 
-[![CI](https://github.com/shuwang1/gps-signal-generator/actions/workflows/ci.yml/badge.svg)](https://github.com/shuwang1/gps-signal-generator/actions/workflows/ci.yml)
-[![Doc Pages-build-deployment](https://github.com/shuwang1/gps-signal-generator/actions/workflows/pages/pages-build-deployment/badge.svg)](https://github.com/shuwang1/gps-signal-generator/actions/workflows/pages/pages-build-deployment)
+[![CI](https://github.com/shuwang1/gps-signal-generator/actions/workflows/ci.yml/badge.svg)](https://github.com/shuwang1/gps-signal-generator/actions/workflows/ci.yml)[![codecov](https://codecov.io/github/shuwang1/libgnss-gps-sim/graph/badge.svg?token=KWS4NXYUT6)](https://codecov.io/github/shuwang1/libgnss-gps-sim)[![Doc Pages-build-deployment](https://github.com/shuwang1/gps-signal-generator/actions/workflows/pages/pages-build-deployment/badge.svg)](https://github.com/shuwang1/gps-signal-generator/actions/workflows/pages/pages-build-deployment)
 
 A high-performance Swift implementation of a GNSS L1 C/A baseband signal generator, ported from the original **Oriental AI** internel C project. This tool generates raw I/Q samples for SDR (Software Defined Radio) hardware, supporting custom trajectories and RINEX navigation data.
 

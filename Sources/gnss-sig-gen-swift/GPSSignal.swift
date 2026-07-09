@@ -73,65 +73,76 @@ struct GPSSignal {
         var iAcc = [Int](repeating: 0, count: iqBuffSize)
         var qAcc = [Int](repeating: 0, count: iqBuffSize)
         
-        for ai in active {
-            var c = channels[ai]
-            var g = gains[ai] * c.dataBit
-            var codePhase = c.codePhaseFixed
-            let codeStep = c.codePhaseStep
-            var carrPhase = c.carrPhase
-            let carrStep = UInt32(bitPattern: Int32(truncatingIfNeeded: c.carrPhaseStep))
-            
-            var isamp = 0
-            while isamp < iqBuffSize {
-                var chip = UInt32(codePhase >> 32)
-                if chip >= UInt32(c.codeLength) {
-                    codePhase -= UInt64(c.codeLength) << 32
-                    chip -= UInt32(c.codeLength)
-                    c.icode += 1
-                    if c.icode >= 20 {
-                        c.icode = 0
-                        c.ibit += 1
-                        if c.ibit >= 30 {
-                            c.ibit = 0
-                            c.iword += 1
+        // Optimization: Bypassing Swift array bounds checking using UnsafeBufferPointers.
+        // The inner loops here run millions of times per second (digital signal processing).
+        // Using direct memory access avoids significant CPU overhead and speeds up sample generation.
+        LUT.iq_lut.withUnsafeBufferPointer { iqLutPtr in
+            iAcc.withUnsafeMutableBufferPointer { iAccPtr in
+                qAcc.withUnsafeMutableBufferPointer { qAccPtr in
+                    for ai in active {
+                        var c = channels[ai]
+                        var g = gains[ai] * c.dataBit
+                        var codePhase = c.codePhaseFixed
+                        let codeStep = c.codePhaseStep
+                        var carrPhase = c.carrPhase
+                        let carrStep = UInt32(bitPattern: Int32(truncatingIfNeeded: c.carrPhaseStep))
+
+                        var isamp = 0
+                        while isamp < iqBuffSize {
+                            var chip = UInt32(codePhase >> 32)
+                            if chip >= UInt32(c.codeLength) {
+                                codePhase -= UInt64(c.codeLength) << 32
+                                chip -= UInt32(c.codeLength)
+                                c.icode += 1
+                                if c.icode >= 20 {
+                                    c.icode = 0
+                                    c.ibit += 1
+                                    if c.ibit >= 30 {
+                                        c.ibit = 0
+                                        c.iword += 1
+                                    }
+                                    c.dataBit = Int((c.dwrd[c.iword] >> (29 - c.ibit)) & 0x1) * 2 - 1
+                                    g = gains[ai] * c.dataBit
+                                }
+                            }
+
+                            let remainingFixed = (UInt64(chip + 1) << 32) - codePhase
+                            let nSamplesInChip = Int((remainingFixed + codeStep - 1) / codeStep)
+                            var nToDo = iqBuffSize - isamp
+                            if nToDo > nSamplesInChip { nToDo = nSamplesInChip }
+
+                            let p_val = Int(((c.ca[Int(chip) >> 5] >> (Int(chip) & 0x1F)) & 1) << 1) - 1
+                            var p = p_val
+                            if c.mod == .boc11 {
+                                let subPhase = UInt32(codePhase >> 31)
+                                if (subPhase & 1) != 0 { p = -p }
+                            }
+                            p *= g
+
+                            for _ in 0..<nToDo {
+                                let iTable = Int((carrPhase >> 16) & 0x1ff)
+                                iAccPtr[isamp] += p * Int(iqLutPtr[iTable << 1])
+                                qAccPtr[isamp] += p * Int(iqLutPtr[(iTable << 1) + 1])
+                                carrPhase = carrPhase &+ carrStep
+                                codePhase += codeStep
+                                isamp += 1
+                            }
                         }
-                        c.dataBit = Int((c.dwrd[c.iword] >> (29 - c.ibit)) & 0x1) * 2 - 1
-                        g = gains[ai] * c.dataBit
+                        c.codePhaseFixed = codePhase
+                        c.carrPhase = carrPhase
+                        let currentChip = Int(codePhase >> 32)
+                        c.codeCA = Int(((c.ca[currentChip >> 5] >> (currentChip & 0x1F)) & 1) << 1) - 1
+                        channels[ai] = c
                     }
                 }
-                
-                let remainingFixed = (UInt64(chip + 1) << 32) - codePhase
-                let nSamplesInChip = Int((remainingFixed + codeStep - 1) / codeStep)
-                var nToDo = iqBuffSize - isamp
-                if nToDo > nSamplesInChip { nToDo = nSamplesInChip }
-                
-                let p_val = Int(((c.ca[Int(chip) >> 5] >> (Int(chip) & 0x1F)) & 1) << 1) - 1
-                var p = p_val
-                if c.mod == .boc11 {
-                    let subPhase = UInt32(codePhase >> 31)
-                    if (subPhase & 1) != 0 { p = -p }
-                }
-                p *= g
-                
-                for _ in 0..<nToDo {
-                    let iTable = Int((carrPhase >> 16) & 0x1ff)
-                    iAcc[isamp] += p * Int(LUT.iq_lut[iTable << 1])
-                    qAcc[isamp] += p * Int(LUT.iq_lut[(iTable << 1) + 1])
-                    carrPhase = carrPhase &+ carrStep
-                    codePhase += codeStep
-                    isamp += 1
-                }
             }
-            c.codePhaseFixed = codePhase
-            c.carrPhase = carrPhase
-            let currentChip = Int(codePhase >> 32)
-            c.codeCA = Int(((c.ca[currentChip >> 5] >> (currentChip & 0x1F)) & 1) << 1) - 1
-            channels[ai] = c
         }
         
-        for isamp in 0..<iqBuffSize {
-            iqBuff[isamp << 1] = Int16(truncatingIfNeeded: (iAcc[isamp] + 64) >> 7)
-            iqBuff[(isamp << 1) + 1] = Int16(truncatingIfNeeded: (qAcc[isamp] + 64) >> 7)
+        iqBuff.withUnsafeMutableBufferPointer { iqBuffPtr in
+            for isamp in 0..<iqBuffSize {
+                iqBuffPtr[isamp << 1] = Int16(truncatingIfNeeded: (iAcc[isamp] + 64) >> 7)
+                iqBuffPtr[(isamp << 1) + 1] = Int16(truncatingIfNeeded: (qAcc[isamp] + 64) >> 7)
+            }
         }
     }
 }

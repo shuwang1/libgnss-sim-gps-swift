@@ -77,7 +77,7 @@ struct GPSSignal {
 
             qAcc.withUnsafeMutableBufferPointer { qAccPtr in
                 for i in 0..<iqBuffSize { qAccPtr[i] = 0 }
-                LUT.iq_lut.withUnsafeBufferPointer { lutPtr in
+                LUT.iq_lut.withUnsafeBufferPointer { _ in
                     for ai in active {
                         var c = channels[ai]
                         var g = gains[ai] * c.dataBit

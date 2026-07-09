@@ -1,3 +1,6 @@
+## 2024-06-25 - Replace small integer pow() with multiplications and Horner's method
+**Learning:** Using `pow(x, 2)` or `pow(x, 3)` in Swift is significantly slower than doing simple multiplication (`x * x` or `x * x * x`), as `pow` handles general-purpose floating point fractional exponents. Furthermore, evaluating polynomials like `a0 + a1*x + a2*pow(x,2) + a3*pow(x,3)` can be significantly sped up by replacing the `pow` calls and further using Horner's method: `a0 + x*(a1 + x*(a2 + x*a3))`. In tight loops that process channels or high-frequency operations, this avoids a heavy hit.
+**Action:** Always prefer direct multiplication over `pow` for small integer exponents (e.g., ^2, ^3). When dealing with polynomial evaluations, apply Horner's method to reduce the number of multiplications and avoid the `pow` function entirely.
 ## 2024-05-24 - Swift compiler segfault
 **Learning:** The Swift 6.0 compiler on Ubuntu 22.04 in the sandbox crashes due to a bug in clang::RawComment when swift files contain triple-slash doc comments. I used sed to remove them but it still crashed.
 **Action:** Manual verification or alternative scripts might be required if compilation fails. I will not compile swift, and instead perform the optimization based on static analysis.

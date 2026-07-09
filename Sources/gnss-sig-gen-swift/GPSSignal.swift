@@ -73,9 +73,12 @@ struct GPSSignal {
         var iAcc = [Int](repeating: 0, count: iqBuffSize)
         var qAcc = [Int](repeating: 0, count: iqBuffSize)
         
-        iAcc.withUnsafeMutableBufferPointer { iAccPtr in
-            qAcc.withUnsafeMutableBufferPointer { qAccPtr in
-                LUT.iq_lut.withUnsafeBufferPointer { lutPtr in
+        // Optimization: Bypassing Swift array bounds checking using UnsafeBufferPointers.
+        // The inner loops here run millions of times per second (digital signal processing).
+        // Using direct memory access avoids significant CPU overhead and speeds up sample generation.
+        LUT.iq_lut.withUnsafeBufferPointer { iqLutPtr in
+            iAcc.withUnsafeMutableBufferPointer { iAccPtr in
+                qAcc.withUnsafeMutableBufferPointer { qAccPtr in
                     for ai in active {
                         var c = channels[ai]
                         var g = gains[ai] * c.dataBit
@@ -118,9 +121,8 @@ struct GPSSignal {
 
                             for _ in 0..<nToDo {
                                 let iTable = Int((carrPhase >> 16) & 0x1ff)
-
-                                iAccPtr[isamp] += p * Int(lutPtr[iTable << 1])
-                                qAccPtr[isamp] += p * Int(lutPtr[(iTable << 1) + 1])
+                                iAccPtr[isamp] += p * Int(iqLutPtr[iTable << 1])
+                                qAccPtr[isamp] += p * Int(iqLutPtr[(iTable << 1) + 1])
                                 carrPhase = carrPhase &+ carrStep
                                 codePhase += codeStep
                                 isamp += 1
@@ -136,15 +138,10 @@ struct GPSSignal {
             }
         }
         
-        iqBuff.withUnsafeMutableBufferPointer { iqPtr in
-            iAcc.withUnsafeBufferPointer { iAccPtr in
-                qAcc.withUnsafeBufferPointer { qAccPtr in
-                    for isamp in 0..<iqBuffSize {
-
-                        iqPtr[isamp << 1] = Int16(truncatingIfNeeded: (iAccPtr[isamp] + 64) >> 7)
-                        iqPtr[(isamp << 1) + 1] = Int16(truncatingIfNeeded: (qAccPtr[isamp] + 64) >> 7)
-                    }
-                }
+        iqBuff.withUnsafeMutableBufferPointer { iqBuffPtr in
+            for isamp in 0..<iqBuffSize {
+                iqBuffPtr[isamp << 1] = Int16(truncatingIfNeeded: (iAcc[isamp] + 64) >> 7)
+                iqBuffPtr[(isamp << 1) + 1] = Int16(truncatingIfNeeded: (qAcc[isamp] + 64) >> 7)
             }
         }
     }

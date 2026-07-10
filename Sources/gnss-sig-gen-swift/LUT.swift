@@ -19,8 +19,8 @@ import Foundation
 
 /// Look-up tables (LUTs) for signal processing and antenna characteristics.
 struct LUT {
-    /// Interleaved I/Q carrier look-up table (sine/cosine values scaled to Int16).
-    static let iq_lut: [Int16] = [
+    /// Interleaved I/Q carrier look-up table (sine/cosine values scaled to Int).
+    static let iq_lut: [Int] = [
         250,   2, 250,   5, 250,   8, 250,  11, 250,  14, 249,  17, 249,  20, 249,  23,
         249,  26, 248,  29, 248,  32, 248,  35, 247,  38, 247,  41, 246,  44, 245,  47,
         245,  50, 244,  53, 244,  56, 243,  59, 242,  62, 241,  65, 241,  68, 240,  71,

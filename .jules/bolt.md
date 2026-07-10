@@ -16,3 +16,6 @@
 ## 2026-06-15 - Optimize pow() calls with direct multiplication
 **Learning:** Replaced `pow(x, 2)` and `pow(x, 3)` with direct multiplications `x * x` and `x * x * x` in `Sources/gnss-sig-gen-swift/Channel.swift` and `Simulator.swift` to improve performance. The Swift compiler crashes randomly on this devbox due to an unrelated environment issue (`swift-frontend` segfault in `clang::RawComment`), so tests were run via Python scripts demonstrating an over 40% speedup for simple powers by avoiding math library overhead.
 **Action:** When small integer powers are used in hot paths like signal simulation or tight loops, replace them with direct multiplications.
+## 2026-06-27 - Remove hot-loop allocations and avoid cast overheads
+**Learning:** Re-allocating arrays (like `iAcc` and `qAcc`) on every high-frequency simulation step (0.1s ticks) causes massive garbage collection/refcounting pressure. Additionally, using small integer types (like `Int16`) for arrays forces hot loops to constantly cast elements to `Int` for math, wasting CPU cycles.
+**Action:** When working in tight simulation/DSP loops, hoist array allocations into object initialization and pass them as `inout` buffers to be zeroed out (`update(repeating: 0)`) and reused. Always use native `Int` for lookup tables unless memory constrained, to avoid casting overheads during math operations.

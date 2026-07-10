@@ -74,6 +74,10 @@ class Simulator {
     /// Total number of 0.1s simulation steps to execute.
     var numSteps: Int = 0
     
+    // Pre-allocated buffers for synthesis
+    var iAccBuff: [Int] = []
+    var qAccBuff: [Int] = []
+
     /// Initializes a new simulator with the provided configuration.
     /// - Parameter config: Simulation configuration.
     init(config: Config) {
@@ -149,6 +153,11 @@ class Simulator {
         
         receiverTime = config.g0
         allocateChannels()
+
+        let iqBuffSize = Int(config.sampFreq * Constants.TIME_STEP)
+        iAccBuff = [Int](repeating: 0, count: iqBuffSize)
+        qAccBuff = [Int](repeating: 0, count: iqBuffSize)
+
         let visibleCount = allocatedSat.filter { $0 != -1 }.count
         Logger.info("Initialization complete. \(visibleCount) satellites visible.")
         return true
@@ -277,7 +286,7 @@ class Simulator {
         let iqBuffSize = Int(config.sampFreq * Constants.TIME_STEP)
         var iqBuff = [Int16](repeating: 0, count: 2 * iqBuffSize)
         
-        GPSSignal.generateSamples(iqBuff: &iqBuff, iqBuffSize: iqBuffSize, channels: &channels, gains: gains, active: active)
+        GPSSignal.generateSamples(iqBuff: &iqBuff, iqBuffSize: iqBuffSize, channels: &channels, gains: gains, active: active, iAcc: &iAccBuff, qAcc: &qAccBuff)
         
         // Every 30 seconds, update navigation message and visibility
         if stepIdx > 0 && Int(receiverTime.sec * 10.0 + 0.5) % 3000 == 0 {

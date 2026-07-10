@@ -69,9 +69,12 @@ struct GPSSignal {
     ///   - channels: Array of all simulation channels.
     ///   - gains: Signal gain for each channel.
     ///   - active: Indices of active channels to synthesize.
-    static func generateSamples(iqBuff: inout [Int16], iqBuffSize: Int, channels: inout [Link], gains: [Int], active: [Int]) {
-        var iAcc = [Int](repeating: 0, count: iqBuffSize)
-        var qAcc = [Int](repeating: 0, count: iqBuffSize)
+    ///   - iAcc: Pre-allocated buffer for I channel accumulation.
+    ///   - qAcc: Pre-allocated buffer for Q channel accumulation.
+    static func generateSamples(iqBuff: inout [Int16], iqBuffSize: Int, channels: inout [Link], gains: [Int], active: [Int], iAcc: inout [Int], qAcc: inout [Int]) {
+        // Zero out the accumulation buffers for the current step
+        iAcc.withUnsafeMutableBufferPointer { ptr in ptr.update(repeating: 0) }
+        qAcc.withUnsafeMutableBufferPointer { ptr in ptr.update(repeating: 0) }
         
         // Optimization: Bypassing Swift array bounds checking using UnsafeBufferPointers.
         // The inner loops here run millions of times per second (digital signal processing).
@@ -120,9 +123,9 @@ struct GPSSignal {
                             p *= g
 
                             for _ in 0..<nToDo {
-                                let iTable = Int((carrPhase >> 16) & 0x1ff)
-                                iAccPtr[isamp] += p * Int(iqLutPtr[iTable << 1])
-                                qAccPtr[isamp] += p * Int(iqLutPtr[(iTable << 1) + 1])
+                                let idx = Int((carrPhase >> 15) & 0x3fe)
+                                iAccPtr[isamp] += p * iqLutPtr[idx]
+                                qAccPtr[isamp] += p * iqLutPtr[idx + 1]
                                 carrPhase = carrPhase &+ carrStep
                                 codePhase += codeStep
                                 isamp += 1

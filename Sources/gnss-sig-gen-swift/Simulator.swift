@@ -74,9 +74,10 @@ class Simulator {
     /// Total number of 0.1s simulation steps to execute.
     var numSteps: Int = 0
     
-    // Pre-allocated buffers for synthesis
-    var iAccBuff: [Int] = []
-    var qAccBuff: [Int] = []
+    // Performance Optimization: Pre-allocated buffers for signal generation
+    var iqBuff: [Int16]
+    var iAcc: [Int]
+    var qAcc: [Int]
 
     /// Initializes a new simulator with the provided configuration.
     /// - Parameter config: Simulation configuration.
@@ -84,6 +85,11 @@ class Simulator {
         self.config = config
         self.antPat = LUT.ant_pat_db.map { pow(10.0, -$0 / 20.0) }
         self.samplePeriod = 1.0 / config.sampFreq
+
+        let iqBuffSize = Int(config.sampFreq * Constants.TIME_STEP)
+        self.iqBuff = [Int16](repeating: 0, count: 2 * iqBuffSize)
+        self.iAcc = [Int](repeating: 0, count: iqBuffSize)
+        self.qAcc = [Int](repeating: 0, count: iqBuffSize)
     }
     
     /// Initializes the simulation environment by loading files and determining the starting epoch.
@@ -284,9 +290,8 @@ class Simulator {
         
         let active = (0..<Constants.MAX_CHAN).filter { channels[$0].prn > 0 }
         let iqBuffSize = Int(config.sampFreq * Constants.TIME_STEP)
-        var iqBuff = [Int16](repeating: 0, count: 2 * iqBuffSize)
         
-        GPSSignal.generateSamples(iqBuff: &iqBuff, iqBuffSize: iqBuffSize, channels: &channels, gains: gains, active: active, iAcc: &iAccBuff, qAcc: &qAccBuff)
+        GPSSignal.generateSamples(iqBuff: &self.iqBuff, iqBuffSize: iqBuffSize, channels: &channels, gains: gains, active: active, iAcc: &self.iAcc, qAcc: &self.qAcc)
         
         // Every 30 seconds, update navigation message and visibility
         if stepIdx > 0 && Int(receiverTime.sec * 10.0 + 0.5) % 3000 == 0 {
@@ -299,6 +304,6 @@ class Simulator {
         }
         
         receiverTime = receiverTime.adding(seconds: Constants.TIME_STEP)
-        return iqBuff
+        return self.iqBuff
     }
 }
